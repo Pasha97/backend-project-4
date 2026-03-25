@@ -1,15 +1,20 @@
 import axios from 'axios'
 import fs from 'fs/promises'
 import path from 'path'
-import { buildFilename } from './utils/common.js'
+import * as cheerio from 'cheerio'
+import { buildFilename, buildAssetDirname } from './utils/common.js'
+import { processImages } from './imageLoader.js'
 
 const pageLoader = (url, outputDir) => {
-  const filename = buildFilename(url)
-  const filepath = path.join(outputDir, filename)
+  const htmlFilepath = path.join(outputDir, buildFilename(url))
+  const assetDirname = buildAssetDirname(url)
+  const assetDirpath = path.join(outputDir, assetDirname)
 
   return axios.get(url)
-    .then(response => fs.writeFile(filepath, response.data))
-    .then(() => filepath)
+    .then(response => cheerio.load(response.data))
+    .then($ => processImages($, url, assetDirname, assetDirpath))
+    .then($ => fs.writeFile(htmlFilepath, $.html()))
+    .then(() => htmlFilepath)
 }
 
 export default pageLoader
