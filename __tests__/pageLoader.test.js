@@ -15,11 +15,23 @@ const host = 'https://page.ru'
 const route = '/test'
 const url = `${host}${route}`
 
+const pageHost = 'https://ru.hexlet.io'
+const pageRoute = '/courses'
+const pageUrl = `${pageHost}${pageRoute}`
+
 let tempDir
 
 beforeEach(async () => {
   tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'page-loader-'))
 })
+
+const mockPageWithAllResources = (inputHtml, imageData) => {
+  nock(pageHost).get(pageRoute).reply(200, inputHtml)
+  nock(pageHost).get('/assets/professions/nodejs.png').reply(200, imageData)
+  nock(pageHost).get('/assets/application.css').reply(200, Buffer.from('body {}'))
+  nock(pageHost).get('/packs/js/runtime.js').reply(200, Buffer.from('console.log(1)'))
+  nock(pageHost).get('/courses').reply(200, '<html></html>')
+}
 
 test('downloads page', async () => {
   const html = '<html><body>Test</body></html>'
@@ -44,16 +56,10 @@ test('throws error on bad request', async () => {
 })
 
 test('downloads image from same host', async () => {
-  const pageHost = 'https://ru.hexlet.io'
-  const pageRoute = '/courses'
-  const pageUrl = `${pageHost}${pageRoute}`
-  const imageRoute = '/assets/professions/nodejs.png'
-
   const inputHtml = await fs.readFile(path.join(fixturesPath, 'ru-hexlet-io-courses.html'), 'utf-8')
   const imageData = await fs.readFile(path.join(fixturesPath, 'images', 'nodejs.png'))
 
-  nock(pageHost).get(pageRoute).reply(200, inputHtml)
-  nock(pageHost).get(imageRoute).reply(200, imageData)
+  mockPageWithAllResources(inputHtml, imageData)
 
   await pageLoader(pageUrl, tempDir)
 
@@ -63,17 +69,32 @@ test('downloads image from same host', async () => {
   expect(savedImage).toEqual(imageData)
 })
 
-test('rewrites img src to local path in saved HTML', async () => {
-  const pageHost = 'https://ru.hexlet.io'
-  const pageRoute = '/courses'
-  const pageUrl = `${pageHost}${pageRoute}`
-  const imageRoute = '/assets/professions/nodejs.png'
+test('downloads css and js files', async () => {
+  const inputHtml = await fs.readFile(path.join(fixturesPath, 'ru-hexlet-io-courses.html'), 'utf-8')
+  const imageData = await fs.readFile(path.join(fixturesPath, 'images', 'nodejs.png'))
+  const cssData = Buffer.from('body {}')
+  const jsData = Buffer.from('console.log(1)')
 
+  nock(pageHost).get(pageRoute).reply(200, inputHtml)
+  nock(pageHost).get('/assets/professions/nodejs.png').reply(200, imageData)
+  nock(pageHost).get('/assets/application.css').reply(200, cssData)
+  nock(pageHost).get('/packs/js/runtime.js').reply(200, jsData)
+  nock(pageHost).get('/courses').reply(200, '<html></html>')
+
+  await pageLoader(pageUrl, tempDir)
+
+  const cssPath = path.join(tempDir, 'ru-hexlet-io-courses_files', 'ru-hexlet-io-assets-application.css')
+  const jsPath = path.join(tempDir, 'ru-hexlet-io-courses_files', 'ru-hexlet-io-packs-js-runtime.js')
+
+  expect(await fs.readFile(cssPath)).toEqual(cssData)
+  expect(await fs.readFile(jsPath)).toEqual(jsData)
+})
+
+test('rewrites img src to local path in saved HTML', async () => {
   const inputHtml = await fs.readFile(path.join(fixturesPath, 'ru-hexlet-io-courses.html'), 'utf-8')
   const imageData = await fs.readFile(path.join(fixturesPath, 'images', 'nodejs.png'))
 
-  nock(pageHost).get(pageRoute).reply(200, inputHtml)
-  nock(pageHost).get(imageRoute).reply(200, imageData)
+  mockPageWithAllResources(inputHtml, imageData)
 
   const htmlFilepath = await pageLoader(pageUrl, tempDir)
   const savedHtml = await fs.readFile(htmlFilepath, 'utf-8')
@@ -82,11 +103,29 @@ test('rewrites img src to local path in saved HTML', async () => {
   expect($('img').attr('src')).toBe('ru-hexlet-io-courses_files/ru-hexlet-io-assets-professions-nodejs.png')
 })
 
-test('does not download images from other hosts', async () => {
-  const pageHost = 'https://ru.hexlet.io'
-  const pageRoute = '/courses'
-  const pageUrl = `${pageHost}${pageRoute}`
+test('rewrites link href and script src to local paths in saved HTML', async () => {
+  const inputHtml = await fs.readFile(path.join(fixturesPath, 'ru-hexlet-io-courses.html'), 'utf-8')
+  const imageData = await fs.readFile(path.join(fixturesPath, 'images', 'nodejs.png'))
 
+  mockPageWithAllResources(inputHtml, imageData)
+
+  const htmlFilepath = await pageLoader(pageUrl, tempDir)
+  const savedHtml = await fs.readFile(htmlFilepath, 'utf-8')
+  const $ = cheerio.load(savedHtml)
+
+  expect($('link[rel="stylesheet"][href*="application"]').attr('href'))
+    .toBe('ru-hexlet-io-courses_files/ru-hexlet-io-assets-application.css')
+  expect($('script[src*="runtime"]').attr('src'))
+    .toBe('ru-hexlet-io-courses_files/ru-hexlet-io-packs-js-runtime.js')
+  expect($('link[rel="canonical"]').attr('href'))
+    .toBe('ru-hexlet-io-courses_files/ru-hexlet-io-courses.html')
+  expect($('link[href*="cdn2.hexlet.io"]').attr('href'))
+    .toBe('https://cdn2.hexlet.io/assets/menu.css')
+  expect($('script[src*="stripe"]').attr('src'))
+    .toBe('https://js.stripe.com/v3/')
+})
+
+test('does not download images from other hosts', async () => {
   const htmlWithExternal = '<html><body><img src="https://external.com/img.png"><img src="/local.png"></body></html>'
   const localImageData = Buffer.from([0x89, 0x50, 0x4e, 0x47])
 
