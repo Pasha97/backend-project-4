@@ -3,3 +3,15 @@
 
 
 [Скачивание страницы](https://asciinema.org/a/Tan6nUnbnlJbJ9oT)
+[Работа в режиме отладка](https://asciinema.org/a/tZvOmrm0Y7WPWtwN)
+
+Работа с отладчиком 
+
+# Только page-loader
+DEBUG=page-loader page-loader https://ru.hexlet.io/courses
+
+# Всё включая axios и nock
+DEBUG=page-loader,axios,nock.* page-loader https://ru.hexlet.io/courses
+
+# Тесты с дебагом
+DEBUG=page-loader npm test

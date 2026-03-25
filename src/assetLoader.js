@@ -1,18 +1,22 @@
 import axios from 'axios'
 import fs from 'fs/promises'
 import path from 'path'
+import createDebug from 'debug'
 import { buildAssetFilename } from './utils/common.js'
 
+const debug = createDebug('page-loader')
+
 const RESOURCE_TYPES = [
-  { selector: 'img',    attr: 'src'  },
-  { selector: 'link',   attr: 'href' },
-  { selector: 'script', attr: 'src'  },
+  { selector: 'img', attr: 'src' },
+  { selector: 'link', attr: 'href' },
+  { selector: 'script', attr: 'src' },
 ]
 
 const isSameHost = (pageUrl, src) => {
   try {
     return new URL(src, pageUrl).hostname === new URL(pageUrl).hostname
-  } catch {
+  }
+  catch {
     return false
   }
 }
@@ -34,6 +38,8 @@ const downloadAsset = (pageUrl, src, assetDirname, assetDirpath) => {
   const localFilepath = path.join(assetDirpath, localFilename)
   const localRef = path.join(assetDirname, localFilename)
 
+  debug('downloading %s → %s', resolvedUrl, localFilepath)
+
   return axios.get(resolvedUrl, { responseType: 'arraybuffer' })
     .then(res => fs.writeFile(localFilepath, res.data))
     .then(() => ({ attr: null, originalSrc: src, localRef }))
@@ -43,6 +49,8 @@ export const processAssets = ($, pageUrl, assetDirname, assetDirpath) => {
   const assets = extractAssets($, pageUrl)
 
   if (assets.length === 0) return Promise.resolve($)
+
+  debug('creating assets dir %s', assetDirpath)
 
   return fs.mkdir(assetDirpath, { recursive: true })
     .then(() => Promise.all(
