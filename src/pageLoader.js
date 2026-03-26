@@ -8,7 +8,7 @@ import { processAssets } from './assetLoader.js'
 
 const debug = createDebug('page-loader')
 
-const pageLoader = (url, outputDir) => {
+const pageLoader = (url, outputDir = process.cwd()) => {
   const htmlFilepath = path.join(outputDir, buildFilename(url))
   const assetDirname = buildAssetDirname(url)
   const assetDirpath = path.join(outputDir, assetDirname)
