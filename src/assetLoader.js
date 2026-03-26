@@ -56,7 +56,7 @@ export const processAssets = ($, pageUrl, assetDirname, assetDirpath) => {
 
   const listrTasks = assets.map(({ attr, val }) => ({
     title: new URL(val, pageUrl).toString(),
-    task: (ctx) => downloadAsset(pageUrl, val, assetDirname, assetDirpath)
+    task: ctx => downloadAsset(pageUrl, val, assetDirname, assetDirpath)
       .then((result) => { ctx.mappings.push({ ...result, attr, originalSrc: val }) })
       .catch((err) => { ctx.errors.push(err) }),
   }))
