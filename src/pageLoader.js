@@ -19,7 +19,9 @@ const pageLoader = (url, outputDir) => {
     .catch((err) => { throw new Error(`Failed to fetch ${url}: ${err.message}`) })
     .then((response) => {
       debug('fetched %s, status %d', url, response.status)
-      return cheerio.load(response.data)
+      return fs.access(outputDir)
+        .catch(() => { throw new Error(`Output directory does not exist: ${outputDir}`) })
+        .then(() => cheerio.load(response.data))
     })
     .then($ => processAssets($, url, assetDirname, assetDirpath))
     .then(($) => {

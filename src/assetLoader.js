@@ -56,13 +56,15 @@ export const processAssets = ($, pageUrl, assetDirname, assetDirpath) => {
 
   const listrTasks = assets.map(({ attr, val }) => ({
     title: new URL(val, pageUrl).toString(),
-    task: ctx => downloadAsset(pageUrl, val, assetDirname, assetDirpath)
-      .then((result) => { ctx.mappings.push({ ...result, attr, originalSrc: val }) }),
+    task: (ctx) => downloadAsset(pageUrl, val, assetDirname, assetDirpath)
+      .then((result) => { ctx.mappings.push({ ...result, attr, originalSrc: val }) })
+      .catch((err) => { ctx.errors.push(err) }),
   }))
 
-  return fs.mkdir(assetDirpath, { recursive: true })
-    .then(() => new Listr(listrTasks, { concurrent: true }).run({ mappings: [] }))
+  return fs.mkdir(assetDirpath)
+    .then(() => new Listr(listrTasks, { concurrent: true }).run({ mappings: [], errors: [] }))
     .then((ctx) => {
+      if (ctx.errors.length > 0) throw ctx.errors[0]
       ctx.mappings.forEach(({ attr, originalSrc, localRef }) => {
         $(`[${attr}="${originalSrc}"]`).attr(attr, localRef)
       })
