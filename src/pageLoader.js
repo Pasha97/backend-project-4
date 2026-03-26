@@ -16,7 +16,7 @@ const pageLoader = (url, outputDir) => {
   debug('loading page %s', url)
 
   return axios.get(url)
-    .catch(err => { throw new Error(`Failed to fetch ${url}: ${err.message}`) })
+    .catch((err) => { throw new Error(`Failed to fetch ${url}: ${err.message}`) })
     .then((response) => {
       debug('fetched %s, status %d', url, response.status)
       return cheerio.load(response.data)
@@ -25,7 +25,7 @@ const pageLoader = (url, outputDir) => {
     .then(($) => {
       debug('saving HTML to %s', htmlFilepath)
       return fs.writeFile(htmlFilepath, $.html())
-        .catch(err => { throw new Error(`Failed to write to ${htmlFilepath}: ${err.message}`) })
+        .catch((err) => { throw new Error(`Failed to write to ${htmlFilepath}: ${err.message}`) })
     })
     .then(() => {
       debug('done, file saved: %s', htmlFilepath)
