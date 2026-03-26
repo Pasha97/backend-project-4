@@ -55,6 +55,25 @@ test('throws error on bad request', async () => {
   await expect(pageLoader(url, tempDir)).rejects.toThrow()
 })
 
+test('throws with url in message when page returns 404', async () => {
+  nock(host).get(route).reply(404)
+
+  await expect(pageLoader(url, tempDir)).rejects.toThrow(/page\.ru/)
+})
+
+test('throws when output directory does not exist', async () => {
+  nock(host).get(route).reply(200, '<html></html>')
+
+  await expect(pageLoader(url, '/nonexistent/path')).rejects.toThrow()
+})
+
+test('throws with url in message when asset download fails', async () => {
+  nock(host).get(route).reply(200, '<html><img src="/img.png"></html>')
+  nock(host).get('/img.png').reply(500)
+
+  await expect(pageLoader(url, tempDir)).rejects.toThrow(/img\.png/)
+})
+
 test('downloads image from same host', async () => {
   const inputHtml = await fs.readFile(path.join(fixturesPath, 'ru-hexlet-io-courses.html'), 'utf-8')
   const imageData = await fs.readFile(path.join(fixturesPath, 'images', 'nodejs.png'))

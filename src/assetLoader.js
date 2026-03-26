@@ -41,6 +41,7 @@ const downloadAsset = (pageUrl, src, assetDirname, assetDirpath) => {
   debug('downloading %s → %s', resolvedUrl, localFilepath)
 
   return axios.get(resolvedUrl, { responseType: 'arraybuffer' })
+    .catch(err => { throw new Error(`Failed to download ${resolvedUrl}: ${err.message}`) })
     .then(res => fs.writeFile(localFilepath, res.data))
     .then(() => ({ attr: null, originalSrc: src, localRef }))
 }

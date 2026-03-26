@@ -4,6 +4,7 @@
 
 [Скачивание страницы](https://asciinema.org/a/Tan6nUnbnlJbJ9oT)
 [Работа в режиме отладка](https://asciinema.org/a/tZvOmrm0Y7WPWtwN)
+[Обработка ошибок](https://asciinema.org/a/uXGcYvhd7BRyg8lp)
 
 Работа с отладчиком 
 
